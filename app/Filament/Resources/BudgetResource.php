@@ -149,7 +149,22 @@ class BudgetResource extends Resource
                 Tables\Actions\EditAction::make(),
             ])
             ->headerActions([
-                // ... header actions kamu tetap sama
+                Tables\Actions\Action::make('exportPdf')
+                    ->label('Export PDF')
+                    ->icon('heroicon-o-document')
+                    ->action(function ($livewire) {
+                        // Ambil query tabel sesuai filter
+                        $budgets = $livewire->getFilteredTableQuery()->get();
+
+                        $pdf = Pdf::loadView('exports.budgets', [
+                            'budgets' => $budgets,
+                        ]);
+
+                        return response()->streamDownload(
+                            fn () => print($pdf->output()),
+                            'budgets.pdf'
+                        );
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
