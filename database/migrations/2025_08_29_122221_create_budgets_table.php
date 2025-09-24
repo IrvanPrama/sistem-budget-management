@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('project_name');
             $table->string('client');
+            $table->string('expense_name');
             $table->string('project_deskription');
             $table->string('expenses');
             $table->string('estimate');

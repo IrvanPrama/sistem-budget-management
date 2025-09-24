@@ -23,27 +23,42 @@ class BudgetResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('project_name')
+                Forms\Components\Select::make('project_name')
+                    ->label('Project')
+                    ->options(\App\Models\Project::pluck('project_name', 'project_name'))
+                    ->searchable()
                     ->required()
-                    ->maxLength(255),
+                    ->reactive() // penting biar bisa trigger update
+                    ->afterStateUpdated(function ($state, callable $set) {
+                        if ($state) {
+                            $project = \App\Models\Project::where('project_name', $state)->first();
+                            if ($project) {
+                                $set('client', $project->client); // otomatis isi field client
+                            }
+                        }
+                    }),
+
                 Forms\Components\TextInput::make('client')
                     ->required()
+                    ->readonly()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('project_deskription')
+                Forms\Components\TextInput::make('expense_name')
+                    ->label('Nama Pengeluaran')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('expenses')
-                    ->required()
-                    ->numeric()
-                    ->prefix('Rp ')
-                    ->formatStateUsing(fn ($state) => $state !== null ? number_format($state, 0, ',', '.'): 0 
-                    )// menambah pemisah ribuan
-                    ->maxLength(255),
+                
                 Forms\Components\TextInput::make('estimate')
                     ->label('Estimasi Pengeluaran')
                     ->required()
                     ->numeric()
-                    ->maxLength(255),
+                    ->prefix('Rp ')
+                    ->maxLength(12),
+                
+                Forms\Components\TextInput::make('expenses')
+                    ->label('Realisasi Pengeluaran')
+                    ->numeric()
+                    ->prefix('Rp ')
+                    ->maxLength(12),
             ]);
     }
 
@@ -55,15 +70,17 @@ class BudgetResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('client')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('project_deskription')
+                Tables\Columns\TextColumn::make('expense_name')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('estimate')
+                    ->label('Estimasi Pengeluaran')
+                    ->searchable()
+                    ->numeric()
+                    ->money('IDR'),
                 Tables\Columns\TextColumn::make('expenses')
                     ->searchable()
                     ->numeric()
                     ->money('IDR'), //menambah awalan mata uang
-                Tables\Columns\TextColumn::make('estimate')
-                    ->label('Estimasi Pengeluaran')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -74,8 +91,18 @@ class BudgetResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
-            ])
+                    Tables\Filters\SelectFilter::make('project_name')
+                        ->label('Project')
+                        ->options(\App\Models\Project::pluck('project_name', 'project_name'))
+                        ->searchable(),
+
+                    Tables\Filters\SelectFilter::make('client')
+                        ->label('Client')
+                        ->options(\App\Models\Project::pluck('client', 'client'))
+                        ->searchable(),
+                ])
+
+            
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])
