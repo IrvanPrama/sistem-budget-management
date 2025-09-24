@@ -14,7 +14,7 @@
             <tr>
                 <th>No</th>
                 <th>Proyek</th>
-                <th>CLient</th>
+                <th>Client</th>
                 <th>Pengeluaran</th>
                 <th>Estimasi</th>
                 <th>Realisasi</th>
@@ -27,8 +27,8 @@
                     <td>{{ $b->project_name }}</td>
                     <td>{{ $b->client }}</td>
                     <td>{{ $b->expense_name }}</td>
-                    <td>{{ $b->estimate }}</td>
-                    <td>{{ $b->expenses }}</td>
+                    <td>Rp {{ number_format($b->estimate, 0, ',', '.') }}</td>
+                    <td>Rp {{ number_format($b->expenses, 0, ',', '.') }}</td>
                 </tr>
                 @endforeach
         </tbody>
