@@ -13,6 +13,7 @@ protected $fillable = [
     'expense_name',
     'expenses',
     'estimate',
+    'profit_loss',
     ];
 
     public function setExpensesAttribute($value)
@@ -25,6 +26,12 @@ protected $fillable = [
     $this->attributes['estimate'] = (int) str_replace(['.', ','], '', $value);
 
 }
+
+public function getProfitLossAttribute(): int
+{
+    return ($this->estimate ?? 0) - ($this->expenses ?? 0);
+}
+
 
 
 }
