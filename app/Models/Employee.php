@@ -10,6 +10,7 @@ class Employee extends Model
         'employee_name',
         'nomor_tlp',
         'adress',
+        'salary',
         'position',
         'status',
     ];

@@ -47,18 +47,19 @@ class BudgetResource extends Resource
                     ->required()
                     ->readonly()
                     ->maxLength(255),
+                 Forms\Components\DatePicker::make('transaction_date')
+                    ->label('Tgl Transaksi')
+                    ->required(),
                 Forms\Components\TextInput::make('expense_name')
                     ->label('Nama Pengeluaran')
                     ->required()
                     ->maxLength(255),
-                
                 Forms\Components\TextInput::make('estimate')
                     ->label('Estimasi Pengeluaran')
                     ->required()
                     ->numeric()
                     ->prefix('Rp ')
                     ->maxLength(12),
-                
                 Forms\Components\TextInput::make('expenses')
                     ->label('Realisasi Pengeluaran')
                     ->numeric()
@@ -71,6 +72,9 @@ class BudgetResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('transaction_date')
+                    ->label('Tgl Transaksi')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('project_name')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('client')
@@ -112,6 +116,10 @@ class BudgetResource extends Resource
                 Tables\Actions\EditAction::make(),
             ])
             ->headerActions([
+                Tables\Actions\Action::make('addSalary')
+                    ->label('Add Salary')
+                    ->icon('heroicon-o-plus')
+                    ->url(fn () => \App\Filament\Resources\SalaryResource::getUrl('create')), // langsung ke halaman create Salary
                 Tables\Actions\Action::make('exportPdf')
                     ->label('Export PDF')
                     ->icon('heroicon-o-document')

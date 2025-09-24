@@ -15,6 +15,7 @@
                 <th>No</th>
                 <th>Proyek</th>
                 <th>Client</th>
+                <th>Tgl Transaksi</th>
                 <th>Pengeluaran</th>
                 <th>Estimasi</th>
                 <th>Realisasi</th>
@@ -26,6 +27,7 @@
                     <td>{{ $loop->iteration}}</td>
                     <td>{{ $b->project_name }}</td>
                     <td>{{ $b->client }}</td>
+                    <td>{{ $b->transaction_date }}</td>
                     <td>{{ $b->expense_name }}</td>
                     <td>Rp {{ number_format($b->estimate, 0, ',', '.') }}</td>
                     <td>Rp {{ number_format($b->expenses, 0, ',', '.') }}</td>

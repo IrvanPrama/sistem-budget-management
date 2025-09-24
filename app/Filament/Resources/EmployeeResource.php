@@ -36,12 +36,17 @@ class EmployeeResource extends Resource
                 Forms\Components\Select::make('position')
                     ->required()
                     ->options([
-                        0 => 'Designer',
-                        1 => 'Admin',
-                        2 => 'Production',
-                        3 => 'Marketing',
-                        4 => 'Sopir',
+                        'Designer' => 'Designer',
+                        'Admin' => 'Admin',
+                        'Production' => 'Production',
+                        'Marketing' => 'Marketing',
+                        'Sopir' => 'Sopir',
                     ]),
+                Forms\Components\TextInput::make('salary')
+                    ->label('Gaji Pokok')
+                    ->numeric()
+                    ->required()
+                    ->maxLength(255),
                 Forms\Components\TextInput::make('status')
                     ->required()
                     ->maxLength(255),
@@ -59,6 +64,9 @@ class EmployeeResource extends Resource
                 Tables\Columns\TextColumn::make('adress')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('position')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('salary')
+                    ->money('IDR')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('status')
                     ->searchable(),

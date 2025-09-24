@@ -9,6 +9,7 @@ class Budget extends Model
 protected $fillable = [
     'project_name',
     'client',
+    'transaction_date',
     'expense_name',
     'expenses',
     'estimate',
