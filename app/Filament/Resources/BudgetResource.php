@@ -10,8 +10,13 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Actions;
+use Filament\Tables\Actions\Action;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Barryvdh\DomPDF\Facade\Pdf;
+//1. Install package barryvdh/laravel-dompdf: composer require barryvdh/laravel-dompdf
 
 class BudgetResource extends Resource
 {
@@ -105,6 +110,24 @@ class BudgetResource extends Resource
             
             ->actions([
                 Tables\Actions\EditAction::make(),
+            ])
+            ->headerActions([
+                Tables\Actions\Action::make('exportPdf')
+                    ->label('Export PDF')
+                    ->icon('heroicon-o-document')
+                    ->action(function ($livewire) {
+                        // Ambil query tabel sesuai filter
+                        $budgets = $livewire->getFilteredTableQuery()->get();
+
+                        $pdf = Pdf::loadView('exports.budgets', [
+                            'budgets' => $budgets,
+                        ]);
+
+                        return response()->streamDownload(
+                            fn () => print($pdf->output()),
+                            'budgets.pdf'
+                        );
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
