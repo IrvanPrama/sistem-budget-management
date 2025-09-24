@@ -139,6 +139,11 @@ class BudgetResource extends Resource
                     ->label('Client')
                     ->options(\App\Models\Project::pluck('client', 'client'))
                     ->searchable(),
+                
+                Tables\Filters\SelectFilter::make('transaction_date')
+                    ->label('Tgl Transaksi')
+                    ->options(\App\Models\Budget::pluck('transaction_date', 'transaction_date'))
+                    ->searchable(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
