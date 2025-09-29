@@ -14,6 +14,7 @@ protected $fillable = [
     'expenses',
     'estimate',
     'profit_loss',
+    'bukti_transfer',
     ];
 
     public function setExpensesAttribute($value)

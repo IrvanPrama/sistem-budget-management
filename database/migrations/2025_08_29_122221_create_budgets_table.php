@@ -17,9 +17,10 @@ return new class extends Migration
             $table->string('client');
             $table->string('transaction_date');
             $table->string('expense_name');
-            $table->string('project_deskription');
-            $table->string('expenses');
+            $table->string('expenses')->nullable();
             $table->string('estimate');
+            $table->string('profit_loss');
+            $table->string('bukti_transfer');
             $table->timestamps();
         });
     }

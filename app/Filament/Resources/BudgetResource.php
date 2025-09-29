@@ -16,6 +16,7 @@ use Filament\Tables\Actions\Action;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Filament\Tables\Columns\ImageColumn;
 //1. Install package barryvdh/laravel-dompdf: composer require barryvdh/laravel-dompdf
 
 class BudgetResource extends Resource
@@ -61,24 +62,28 @@ class BudgetResource extends Resource
                     ->label('Estimasi Pengeluaran')
                     ->required()
                     ->numeric()
-                    ->prefix('Rp ')
-                    ->maxLength(12),
+                    ->prefix('Rp '),
                 Forms\Components\TextInput::make('expenses')
-                ->label('Expenses')
-                ->numeric()
-                ->reactive()
-                ->required()
-                ->afterStateUpdated(fn ($state, callable $set, $get) =>
-                    $set('profit_loss', ($get('estimate') ?? 0) - ($state ?? 0))
-                ),
+                    ->label('Expenses')
+                    ->numeric()
+                    ->reactive()
+                    ->afterStateUpdated(fn ($state, callable $set, $get) =>
+                        $set('profit_loss', ($get('estimate') ?? 0) - ($state ?? 0))
+                    ),
 
-            Forms\Components\TextInput::make('profit_loss')
-                ->label('Profit / Loss')
-                ->numeric()
-                ->disabled() // supaya user tidak bisa edit manual
-                ->dehydrated(true), // tetap tersimpan ke database
+                Forms\Components\TextInput::make('profit_loss')
+                    ->label('Profit / Loss')
+                    ->numeric()
+                    ->disabled() // supaya user tidak bisa edit manual
+                    ->dehydrated(true), // tetap tersimpan ke database
+            
+                Forms\Components\FileUpload::make('bukti_transfer')
+                        ->label('Bukti Transfer')
+                        ->disk('public') // simpan di public
+                        ->directory('bukti_transfer') // folder khusus
+                        ->image(), // kalau memang hanya gambar
             ]);
-    }
+        }
 
     public static function table(Table $table): Table
     {
@@ -127,6 +132,11 @@ class BudgetResource extends Resource
                             ->using(fn ($query) => $query->get()->sum('profit_loss'))
                             ->money('IDR'),
                     ]),
+                Tables\Columns\ImageColumn::make('bukti_transfer')
+                    ->label('Bukti Transfer')
+                    ->url(fn ($record) => asset('storage/' . $record->bukti_transfer))
+                    // ->disk('public')
+                    ,
 
             ])
             ->filters([
