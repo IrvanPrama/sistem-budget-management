@@ -3,15 +3,12 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SalaryResource\Pages;
-use App\Filament\Resources\SalaryResource\RelationManagers;
 use App\Models\Salary;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class SalaryResource extends Resource
 {
@@ -66,16 +63,16 @@ class SalaryResource extends Resource
                     ->numeric()
                     ->readonly()
                     ->prefix('Rp ')
-                    ->formatStateUsing(fn ($state) => $state !== null ? number_format($state, 0, ',', '.'): 0 
-                ),
-                 Forms\Components\TextInput::make('addon')
-                    ->label('Bonus / Tunjangan')
-                    ->required()
-                    ->numeric()
-                    ->prefix('Rp ')
-                    ->formatStateUsing(fn ($state) => $state !== null ? number_format($state, 0, ',', '.'): 0 
-                    )// menambah pemisah ribuan
-                    ->maxLength(255),
+                    ->formatStateUsing(fn ($state) => $state !== null ? number_format($state, 0, ',', '.') : 0
+                    ),
+                Forms\Components\TextInput::make('addon')
+                   ->label('Bonus / Tunjangan')
+                   ->required()
+                   ->numeric()
+                   ->prefix('Rp ')
+                   ->formatStateUsing(fn ($state) => $state !== null ? number_format($state, 0, ',', '.') : 0
+                   )// menambah pemisah ribuan
+                   ->maxLength(255),
                 Forms\Components\Select::make('status')
                     ->required()
                     ->options([
@@ -124,7 +121,6 @@ class SalaryResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -139,7 +135,6 @@ class SalaryResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
         ];
     }
 

@@ -3,21 +3,18 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\BudgetResource\Pages;
-use App\Filament\Resources\BudgetResource\RelationManagers;
 use App\Models\Budget;
+use App\Models\Project;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Actions;
 use Filament\Tables\Actions\Action;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Tables\Columns\ImageColumn;
-//1. Install package barryvdh/laravel-dompdf: composer require barryvdh/laravel-dompdf
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class BudgetResource extends Resource
 {
@@ -27,22 +24,21 @@ class BudgetResource extends Resource
 
     protected static ?string $navigationGroup = 'Keuangan';
 
-
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Select::make('project_name')
                     ->label('Project')
-                    ->options(\App\Models\Project::pluck('project_name', 'project_name'))
+                    ->options(Project::pluck('project_name', 'project_name'))
                     ->searchable()
                     ->required()
-                    ->reactive() // penting biar bisa trigger update
+                    ->reactive()
                     ->afterStateUpdated(function ($state, callable $set) {
                         if ($state) {
-                            $project = \App\Models\Project::where('project_name', $state)->first();
+                            $project = Project::where('project_name', $state)->first();
                             if ($project) {
-                                $set('client', $project->client); // otomatis isi field client
+                                $set('client', $project->client);
                             }
                         }
                     }),
@@ -51,39 +47,44 @@ class BudgetResource extends Resource
                     ->required()
                     ->readonly()
                     ->maxLength(255),
-                 Forms\Components\DatePicker::make('transaction_date')
-                    ->label('Tgl Transaksi')
-                    ->required(),
+
+                Forms\Components\DatePicker::make('transaction_date')
+                   ->label('Tgl Transaksi')
+                   ->required(),
+
                 Forms\Components\TextInput::make('expense_name')
                     ->label('Nama Pengeluaran')
                     ->required()
                     ->maxLength(255),
+
                 Forms\Components\TextInput::make('estimate')
                     ->label('Estimasi Pengeluaran')
                     ->required()
                     ->numeric()
                     ->prefix('Rp '),
+
                 Forms\Components\TextInput::make('expenses')
-                    ->label('Expenses')
+                    ->label('Realisasi Pengeluaran')
                     ->numeric()
                     ->reactive()
-                    ->afterStateUpdated(fn ($state, callable $set, $get) =>
-                        $set('profit_loss', ($get('estimate') ?? 0) - ($state ?? 0))
+                    ->afterStateUpdated(
+                        fn ($state, callable $set, $get) => $set('profit_loss', ($get('estimate') ?? 0) - ($state ?? 0))
                     ),
 
                 Forms\Components\TextInput::make('profit_loss')
                     ->label('Profit / Loss')
                     ->numeric()
-                    ->disabled() // supaya user tidak bisa edit manual
-                    ->dehydrated(true), // tetap tersimpan ke database
-            
+                    ->disabled()
+                    ->dehydrated(true),
+
                 Forms\Components\FileUpload::make('bukti_transfer')
-                        ->label('Bukti Transfer')
-                        ->disk('public') // simpan di public
-                        ->directory('bukti_transfer') // folder khusus
-                        ->image(), // kalau memang hanya gambar
+                    ->label('Bukti Transfer')
+                    ->disk('public')
+                    ->directory('bukti_transfer')
+                    ->image()
+                    ->preserveFilenames(), // optional
             ]);
-        }
+    }
 
     public static function table(Table $table): Table
     {
@@ -132,38 +133,36 @@ class BudgetResource extends Resource
                             ->using(fn ($query) => $query->get()->sum('profit_loss'))
                             ->money('IDR'),
                     ]),
-                Tables\Columns\ImageColumn::make('bukti_transfer')
-                    ->label('Bukti Transfer')
-                    ->url(fn ($record) => asset('storage/' . $record->bukti_transfer))
-                    // ->disk('public')
-                    ,
 
+                ImageColumn::make('bukti_transfer')
+                    ->label('Bukti Transfer')
+                    ->disk('public') // otomatis generate url ke storage/public
+                    ->square(), // optional: biar proporsional
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('project_name')
+                SelectFilter::make('project_name')
                     ->label('Project')
-                    ->options(\App\Models\Project::pluck('project_name', 'project_name'))
+                    ->options(Project::pluck('project_name', 'project_name'))
                     ->searchable(),
 
-                Tables\Filters\SelectFilter::make('client')
+                SelectFilter::make('client')
                     ->label('Client')
-                    ->options(\App\Models\Project::pluck('client', 'client'))
+                    ->options(Project::pluck('client', 'client'))
                     ->searchable(),
-                
-                Tables\Filters\SelectFilter::make('transaction_date')
+
+                SelectFilter::make('transaction_date')
                     ->label('Tgl Transaksi')
-                    ->options(\App\Models\Budget::pluck('transaction_date', 'transaction_date'))
+                    ->options(Budget::pluck('transaction_date', 'transaction_date'))
                     ->searchable(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Actions\EditAction::make(),
             ])
             ->headerActions([
-                Tables\Actions\Action::make('exportPdf')
+                Action::make('exportPdf')
                     ->label('Export PDF')
                     ->icon('heroicon-o-document')
                     ->action(function ($livewire) {
-                        // Ambil query tabel sesuai filter
                         $budgets = $livewire->getFilteredTableQuery()->get();
 
                         $pdf = Pdf::loadView('exports.budgets', [
@@ -171,24 +170,21 @@ class BudgetResource extends Resource
                         ]);
 
                         return response()->streamDownload(
-                            fn () => print($pdf->output()),
+                            fn () => print ($pdf->output()),
                             'budgets.pdf'
                         );
                     }),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }
 
-
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
