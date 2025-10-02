@@ -3,18 +3,26 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\NeracaResource\Pages;
-use App\Filament\Resources\NeracaResource\RelationManagers;
 use App\Models\Neraca;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class NeracaResource extends Resource
 {
+    public static function getNavigationItems(): array
+    {
+        // Kalau login role selain 0, jangan tampilkan menu
+        if (auth()->user()->role == 0) {
+            return parent::getNavigationItems();
+        }
+
+        // Selain role 1 & 3, menu disembunyikan
+        return [];
+    }
+
     protected static ?string $model = Neraca::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
@@ -53,9 +61,9 @@ class NeracaResource extends Resource
     {
         return $table
             ->columns([
-                  Tables\Columns\TextColumn::make('date')
-                    ->date()
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('date')
+                  ->date()
+                  ->sortable(),
                 Tables\Columns\TextColumn::make('khas_bank')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('liability')
@@ -70,18 +78,16 @@ class NeracaResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('total_liability')
                     ->searchable(),
-                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('created_at')
+                   ->dateTime()
+                   ->sortable()
+                   ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                
             ])
             ->filters([
-                //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -96,7 +102,6 @@ class NeracaResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
         ];
     }
 

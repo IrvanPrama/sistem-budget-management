@@ -18,6 +18,16 @@ use Filament\Tables\Table;
 
 class BudgetResource extends Resource
 {
+    public static function getNavigationItems(): array
+    {
+        // Kalau login role selain 0, jangan tampilkan menu
+        if (auth()->user()->role !== 2) {
+            return parent::getNavigationItems();
+        }
+
+        // Selain role 1 & 3, menu disembunyikan
+        return [];
+    }
     protected static ?string $model = Budget::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';

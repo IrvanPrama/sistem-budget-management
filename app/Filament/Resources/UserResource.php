@@ -12,6 +12,17 @@ use Filament\Tables\Table;
 
 class UserResource extends Resource
 {
+    public static function getNavigationItems(): array
+    {
+        // Kalau login role selain 0, jangan tampilkan menu
+        if (auth()->user()->role == 0) {
+            return parent::getNavigationItems();
+        }
+
+        // Selain role 1 & 3, menu disembunyikan
+        return [];
+    }
+
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
