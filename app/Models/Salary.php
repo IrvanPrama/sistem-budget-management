@@ -13,6 +13,7 @@ class Salary extends Model
     protected $table = 'salarys';
     protected $fillable = [
         'transaction_date',
+        'employee_id',
         'employee_name',
         'project_name',
         'client',

@@ -41,20 +41,23 @@ class SalaryResource extends Resource
                 Forms\Components\TextInput::make('client')
                     ->readonly()
                     ->required(),
-                Forms\Components\Select::make('employee_name')
-                    ->options(\App\Models\Employee::pluck('employee_name', 'employee_name'))
+                Forms\Components\Select::make('employee_id')
+                    ->options(\App\Models\Employee::pluck('employee_name', 'id'))
                     ->searchable()
                     ->required()
                     ->reactive()
                     ->afterStateUpdated(function ($state, callable $set) {
                         if ($state) {
-                            $employee = \App\Models\Employee::where('employee_name', $state)->first();
+                            $employee = \App\Models\Employee::where('id', $state)->first();
                             if ($employee) {
+                                $set('employee_name', $employee->employee_name);
                                 $set('position', $employee->position);
                                 $set('salary', $employee->salary);
                             }
                         }
                     }),
+                Forms\Components\TextInput::make('employee_name')
+                    ->required(),
                 Forms\Components\TextInput::make('position')
                     ->required(),
                 Forms\Components\TextInput::make('salary')
@@ -66,7 +69,7 @@ class SalaryResource extends Resource
                     ->formatStateUsing(fn ($state) => $state !== null ? number_format($state, 0, ',', '.') : 0
                     ),
                 Forms\Components\TextInput::make('addon')
-                   ->label('Bonus / Tunjangan')
+                   ->label('Project Fee')
                    ->required()
                    ->numeric()
                    ->prefix('Rp ')
