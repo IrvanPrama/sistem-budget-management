@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Project;
 use App\Models\Salary;
 use Filament\Tables;
 use Filament\Tables\Table;

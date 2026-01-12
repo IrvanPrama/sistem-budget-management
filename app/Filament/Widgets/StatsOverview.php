@@ -26,19 +26,16 @@ class StatsOverview extends BaseWidget
         if (auth()->user()->role == 0) {
             return [
                 Stat::make('project',
-                    Project::all()->where('status', '1')
-                    ->count()
-                )
-                ->label('Proyek'),
+                    Project::where('status', '1')->count()
+                )->label('Proyek'),
 
                 Stat::make('employee',
-                    Employee::all()->where('status', '1')
-                    ->count()
-                )
-                ->label('Pegawai'),
-                Stat::make('income', $monthlyTotal
-                )
-                ->label('Pendapatan'),
+                    Employee::where('status', '1')->count()
+                )->label('Pegawai'),
+
+                Stat::make('income', 'Rp '.number_format($monthlyTotal ?? 0, 0, ',', '.'))
+                    ->label('Pendapatan')
+                    ->description('Bulan Ini'),
             ];
         } else {
             return [
