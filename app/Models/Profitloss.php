@@ -8,11 +8,9 @@ class Profitloss extends Model
 {
     protected $fillable = [
         'date',
+        'transaction_name',
+        'transaction_type',
         'income',
-        'operation_fee',
-        'employee_salary',
-        'other_fee',
-        'total_cost',
-        'profit',
+        'expense',
     ];
 }

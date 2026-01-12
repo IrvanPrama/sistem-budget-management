@@ -4,15 +4,38 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SalaryResource\Pages;
 use App\Models\Salary;
+use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class SalaryResource extends Resource
 {
     protected static ?string $model = Salary::class;
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        // Jika user login role = 0 (admin), tampilkan semua
+        if (auth()->check() && auth()->user()->role === 0) {
+            return $query;
+        }
+
+        // Selain role 0 → filter berdasarkan banjar user
+        if (auth()->check()) {
+            return $query->where('employee_id', auth()->user()->id);
+        }
+
+        // Default kalau tidak login (harusnya nggak terjadi di Filament)
+        return $query->whereRaw('1=0');
+    }
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
@@ -106,11 +129,21 @@ class SalaryResource extends Resource
                 Tables\Columns\TextColumn::make('salary')
                     ->label('Gaji Pokok')
                     ->money('IDR')
-                    ->searchable(),
+                    ->searchable()
+                    ->summarize([
+                        Tables\Columns\Summarizers\Sum::make()
+                            ->label('Gaji Pokok')
+                            ->money('IDR'),
+                    ]),
                 Tables\Columns\TextColumn::make('addon')
                     ->label('Bonus / Tunjangan')
                     ->money('IDR')
-                    ->searchable(),
+                    ->searchable()
+                    ->summarize([
+                        Tables\Columns\Summarizers\Sum::make()
+                            ->label('Bonus / Tunjangan')
+                            ->money('IDR'),
+                    ]),
                 Tables\Columns\IconColumn::make('status')
                     ->label('Status Dibayar')
                     ->boolean(),
@@ -126,11 +159,31 @@ class SalaryResource extends Resource
             ->filters([
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Actions\EditAction::make()
+                   ->visible(fn () => auth()->user()->role == 0), // hanya role 0
+                Actions\DeleteAction::make()
+                    ->visible(fn () => auth()->user()->role == 0),
+            ])
+            ->headerActions([
+                Action::make('exportPdf')
+                    ->label('Export Slip Gaji')
+                    ->icon('heroicon-o-document')
+                    ->action(function ($livewire) {
+                        $salary = $livewire->getFilteredTableQuery()->get();
+
+                        $pdf = Pdf::loadView('exports.salary', [
+                            'salary' => $salary,
+                        ]);
+
+                        return response()->streamDownload(
+                            fn () => print ($pdf->output()),
+                            'salary.pdf'
+                        );
+                    }),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }

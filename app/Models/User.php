@@ -60,4 +60,18 @@ class User extends Authenticatable
             ->map(fn ($word) => Str::substr($word, 0, 1))
             ->implode('');
     }
+
+    protected static function booted()
+    {
+        static::created(function ($salary) {
+            Budget::create([
+                'employee_id' => $salary->transaction_date,
+                'project_name' => $salary->project_name,
+                'client' => $salary->project->client ?? '-', // kalau ada relasi Project
+                'expense_name' => 'Salary '.$salary->employee_name,
+                'estimate' => $salary->addon,
+                'expenses' => $salary->addon,
+            ]);
+        });
+    }
 }

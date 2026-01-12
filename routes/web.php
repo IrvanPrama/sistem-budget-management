@@ -1,11 +1,14 @@
 <?php
 
+use App\Http\Controllers\AkunController;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
+
+Route::get('/neracas', [AkunController::class, 'index'])->name('neraca.index');
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])

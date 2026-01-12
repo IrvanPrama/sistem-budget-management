@@ -3,206 +3,164 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\BudgetResource\Pages;
+use App\Imports\BudgetsImport;
 use App\Models\Budget;
 use App\Models\Project;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\BulkActionGroup;
+use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\ImageColumn;
-use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 
 class BudgetResource extends Resource
 {
-    public static function getNavigationItems(): array
-    {
-        // Kalau login role selain 0, jangan tampilkan menu
-        if (auth()->user()->role !== 2) {
-            return parent::getNavigationItems();
-        }
-
-        // Selain role 1 & 3, menu disembunyikan
-        return [];
-    }
     protected static ?string $model = Budget::class;
-
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
     protected static ?string $navigationGroup = 'Keuangan';
+    protected static ?int $navigationSort = 3;
 
-    public static function form(Form $form): Form
+    public static function form(Forms\Form $form): Forms\Form
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('project_name')
-                    ->label('Project')
-                    ->options(Project::pluck('project_name', 'project_name'))
-                    ->searchable()
-                    ->required()
-                    ->reactive()
-                    ->afterStateUpdated(function ($state, callable $set) {
-                        if ($state) {
-                            $project = Project::where('project_name', $state)->first();
-                            if ($project) {
-                                $set('client', $project->client);
-                            }
-                        }
-                    }),
+        return $form->schema([
+            Select::make('project_name')
+                ->label('Nama Projek')
+                ->options(Project::pluck('project_name', 'project_name'))
+                ->searchable()
+                ->required()
+                ->reactive()
+                ->afterStateUpdated(function ($state, callable $set) {
+                    $project = Project::where('project_name', $state)->first();
+                    if ($project) {
+                        $set('client', $project->client);
+                    }
+                }),
 
-                Forms\Components\TextInput::make('client')
-                    ->required()
-                    ->readonly()
-                    ->maxLength(255),
+            TextInput::make('client')
+                ->label('Nama Klien')
+                ->readonly()
+                ->required(),
 
-                Forms\Components\DatePicker::make('transaction_date')
-                   ->label('Tgl Transaksi')
-                   ->required(),
+            DatePicker::make('transaction_date')
+                ->label('Tanggal Transaksi')
+                ->required(),
 
-                Forms\Components\TextInput::make('expense_name')
-                    ->label('Nama Pengeluaran')
-                    ->required()
-                    ->maxLength(255),
+            TextInput::make('expense_name')
+                ->label('Nama Pengeluaran')
+                ->required(),
 
-                Forms\Components\TextInput::make('estimate')
-                    ->label('Estimasi Pengeluaran')
-                    ->required()
-                    ->numeric()
-                    ->prefix('Rp '),
+            TextInput::make('estimate')
+                ->label('Estimasi')
+                ->numeric()
+                ->prefix('Rp ')
+                ->required(),
 
-                Forms\Components\TextInput::make('expenses')
-                    ->label('Realisasi Pengeluaran')
-                    ->numeric()
-                    ->reactive()
-                    ->afterStateUpdated(
-                        fn ($state, callable $set, $get) => $set('profit_loss', ($get('estimate') ?? 0) - ($state ?? 0))
-                    ),
+            TextInput::make('expenses')
+                ->label('Realisasi')
+                ->numeric()
+                ->reactive(),
 
-                Forms\Components\TextInput::make('profit_loss')
-                    ->label('Profit / Loss')
-                    ->numeric()
-                    ->disabled()
-                    ->dehydrated(true),
+            TextInput::make('budget')
+                ->label('Anggaran Proyek')
+                ->numeric()
+                ->reactive()
+                ->afterStateUpdated(fn ($state, callable $set, $get) => $set('profit_loss', ($state ?? 0) - ($get('expenses') ?? 0))
+                ),
 
-                Forms\Components\FileUpload::make('bukti_transfer')
-                    ->label('Bukti Transfer')
-                    ->disk('public')
-                    ->directory('bukti_transfer')
-                    ->image()
-                    ->preserveFilenames(), // optional
-            ]);
+            TextInput::make('profit_loss')
+                ->label('Laba / Rugi')
+                ->numeric()
+                ->disabled()
+                ->dehydrated(true),
+
+            FileUpload::make('bukti_transfer')
+                ->label('Bukti Transfer')
+                ->disk('public')
+                ->directory('bukti_transfer')
+                ->image(),
+        ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('transaction_date')
-                    ->label('Tgl Transaksi')
-                    ->searchable(),
+                TextColumn::make('transaction_date')->label('Tanggal')->date(),
+                TextColumn::make('project_name')->label('Projek'),
+                TextColumn::make('client')->label('Klien'),
+                TextColumn::make('expense_name')->label('Pengeluaran'),
 
-                Tables\Columns\TextColumn::make('project_name')
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('client')
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('expense_name')
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('estimate')
-                    ->label('Estimasi Pengeluaran')
-                    ->numeric()
+                TextColumn::make('estimate')
+                    ->label('Estimasi')
                     ->money('IDR')
-                    ->summarize([
-                        Tables\Columns\Summarizers\Sum::make()
-                            ->label('Total Estimasi')
-                            ->money('IDR'),
-                    ]),
+                    ->summarize(Tables\Columns\Summarizers\Sum::make()->money('IDR')),
 
-                Tables\Columns\TextColumn::make('expenses')
-                    ->label('Realisasi Pengeluaran')
-                    ->numeric()
+                TextColumn::make('expenses')
+                    ->label('Realisasi')
                     ->money('IDR')
-                    ->summarize([
-                        Tables\Columns\Summarizers\Sum::make()
-                            ->label('Total Realisasi')
-                            ->money('IDR'),
-                    ]),
+                    ->summarize(Tables\Columns\Summarizers\Sum::make()->money('IDR')),
 
-                Tables\Columns\TextColumn::make('profit_loss')
-                    ->label('Profit / Loss')
+                TextColumn::make('profit_loss')
+                    ->label('Laba / Rugi')
                     ->money('IDR')
-                    ->color(fn ($state) => $state >= 0 ? 'success' : 'danger')
-                    ->summarize([
-                        Tables\Columns\Summarizers\Summarizer::make()
-                            ->label('Total Profit / Loss')
-                            ->using(fn ($query) => $query->get()->sum('profit_loss'))
-                            ->money('IDR'),
-                    ]),
+                    ->color(fn ($state) => $state >= 0 ? 'success' : 'danger'),
 
-                ImageColumn::make('bukti_transfer')
-                    ->label('Bukti Transfer')
-                    ->disk('public') // otomatis generate url ke storage/public
-                    ->square(), // optional: biar proporsional
-            ])
-            ->filters([
-                SelectFilter::make('project_name')
-                    ->label('Project')
-                    ->options(Project::pluck('project_name', 'project_name'))
-                    ->searchable(),
-
-                SelectFilter::make('client')
-                    ->label('Client')
-                    ->options(Project::pluck('client', 'client'))
-                    ->searchable(),
-
-                SelectFilter::make('transaction_date')
-                    ->label('Tgl Transaksi')
-                    ->options(Budget::pluck('transaction_date', 'transaction_date'))
-                    ->searchable(),
-            ])
-            ->actions([
-                Actions\EditAction::make(),
+                ImageColumn::make('bukti_transfer')->label('Bukti'),
             ])
             ->headerActions([
                 Action::make('exportPdf')
-                    ->label('Export PDF')
+                    ->label('Unduh PDF')
                     ->icon('heroicon-o-document')
                     ->action(function ($livewire) {
                         $budgets = $livewire->getFilteredTableQuery()->get();
+                        $pdf = Pdf::loadView('exports.budgets', compact('budgets'));
 
-                        $pdf = Pdf::loadView('exports.budgets', [
-                            'budgets' => $budgets,
-                        ]);
+                        return response()->streamDownload(fn () => print ($pdf->output()), 'laporan-budget.pdf');
+                    }),
 
-                        return response()->streamDownload(
-                            fn () => print ($pdf->output()),
-                            'budgets.pdf'
-                        );
+                Action::make('import')
+                    ->label('Impor CSV')
+                    ->icon('heroicon-o-arrow-up-tray')
+                    ->form([
+                        FileUpload::make('file')
+                            ->label('File CSV')
+                            ->disk('local')
+                            ->directory('imports')
+                            ->acceptedFileTypes(['text/csv'])
+                            ->required(),
+                    ])
+                    ->action(function (array $data) {
+                        $path = Storage::disk('local')->path($data['file']);
+                        Excel::queueImport(new BudgetsImport(), $path);
                     }),
             ])
+            ->actions([
+                Actions\EditAction::make()->label('Ubah'),
+            ])
             ->bulkActions([
-                Actions\BulkActionGroup::make([
-                    Actions\DeleteBulkAction::make(),
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()->label('Hapus'),
                 ]),
             ]);
-    }
-
-    public static function getRelations(): array
-    {
-        return [];
     }
 
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListBudgets::route('/'),
-            'create' => Pages\CreateBudget::route('/create'),
-            'edit' => Pages\EditBudget::route('/{record}/edit'),
+            'create' => Pages\CreateBudget::route('/buat'),
+            'edit' => Pages\EditBudget::route('/{record}/ubah'),
         ];
     }
 }

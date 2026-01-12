@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\EmployeeResource\Pages;
-use App\Filament\Resources\EmployeeResource\RelationManagers;
 use App\Models\Employee;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -11,11 +10,28 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class EmployeeResource extends Resource
 {
     protected static ?string $model = Employee::class;
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        // Jika user login role = 0 (admin), tampilkan semua
+        if (auth()->check() && auth()->user()->role === 0) {
+            return $query;
+        }
+
+        // Selain role 0 → filter berdasarkan banjar user
+        if (auth()->check()) {
+            return $query->where('employee_id', auth()->user()->id);
+        }
+
+        // Default kalau tidak login (harusnya nggak terjadi di Filament)
+        return $query->whereRaw('1=0');
+    }
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
@@ -80,10 +96,12 @@ class EmployeeResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn () => auth()->user()->role == 0), // hanya role 0
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn () => auth()->user()->role == 0),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -95,7 +113,6 @@ class EmployeeResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
         ];
     }
 

@@ -10,14 +10,12 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('profitlosses', function (Blueprint $table) {
+        Schema::create('database_akuns', function (Blueprint $table) {
             $table->id();
-            $table->date('date');
-            $table->year('year');
-            $table->string('transaction_name');
-            $table->string('transaction_type');
-            $table->integer('income');
-            $table->integer('expense');
+            $table->string('akun_name');
+            $table->string('type');
+            $table->string('sub_type');
+            $table->string('akun_code')->unique();
             $table->timestamps();
         });
     }
@@ -27,6 +25,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('profitlosses');
+        Schema::dropIfExists('database_akuns');
     }
 };

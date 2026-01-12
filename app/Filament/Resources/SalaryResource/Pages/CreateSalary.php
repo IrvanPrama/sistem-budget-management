@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\SalaryResource\Pages;
 
-use App\Models\Budget;
 use App\Filament\Resources\SalaryResource;
-use Filament\Actions;
+use App\Models\Budget;
+use App\Models\Profitloss;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateSalary extends CreateRecord
@@ -17,11 +17,19 @@ class CreateSalary extends CreateRecord
 
         Budget::create([
             'transaction_date' => $salary->transaction_date,
-            'project_name'     => $salary->project_name,
-            'client'           => $salary->project->client ?? '-',
-            'expense_name'     => 'Gaji - ' . $salary->employee_name,
-            'estimate'         => $salary->salary,
-            'expenses'         => ($salary->salary ?? 0) + ($salary->addon ?? 0), // salary + addon,
+            'project_name' => $salary->project_name,
+            'client' => $salary->project->client ?? '-',
+            'expense_name' => 'Gaji - '.$salary->employee_name,
+            'estimate' => $salary->salary ?? 0,
+            'expenses' => ($salary->salary ?? 0) + ($salary->addon ?? 0), // salary + addon,
+        ]);
+
+        Profitloss::create([
+            'date' => $salary->transaction_date,
+            'transaction_name' => $salary->project_name.'-'.$salary->employee_name,
+            'transaction_type' => 'Gaji Karyawan',
+            'income' => 0,
+            'expense' => ($salary->salary ?? 0) + ($salary->addon ?? 0), // salary + addon,
         ]);
     }
 
